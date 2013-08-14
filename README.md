@@ -7,6 +7,10 @@ you may use the following syntax:
 
 	spawn_server(handler,stichwort::kwargs[port=80,address="127.0.0.1"]);
 
+Or even (if your compiler supports C++11):
+
+	spawn_server(handler,{port=80,address="127.0.0.1"});
+
 In case of any troubles with the code please don't hesitate to fire 
 [an issue at github](https://github.com/lisitsyn/stichwort/issues/new).
 

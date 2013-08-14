@@ -37,6 +37,8 @@
 #include <iostream>
 #include <list>
 
+#include <initializer_list>
+
 namespace stichwort
 {
 
@@ -237,6 +239,11 @@ public:
 	typedef std::map<std::string, Parameter> ParametersMap;
 	typedef std::list<std::string> DuplicatesList;
 
+	ParametersSet(std::initializer_list<Parameter> pl) : pmap(), dups()
+	{
+		for (auto p : pl) 
+			add(p);
+	}
 	ParametersSet() : pmap(), dups()
 	{
 	}
