@@ -27,46 +27,55 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef STICHWORT_KEYWORDS_H_
-#define STICHWORT_KEYWORDS_H_
-
-#include <stichwort/parameter.hpp>
+#ifndef STICHWORT_UTILS_H_
+#define STICHWORT_UTILS_H_
 
 namespace stichwort
 {
-	struct DefaultValue
+	template <typename T>
+	class optional
 	{
-		DefaultValue() { }
+	public:
+		optional() : value_(), set_(false) {}
+		optional(T v) : value_(v), set_(true) {}
+		
+		optional(const optional& other) : value_(other.value_) {}
+		optional& operator=(const optional& other)
+		{
+			value_ = other.value_;
+			return *this;
+		}
+		inline T value() const { return value_; }
+		inline bool set() const { return set_; }
+		inline operator bool() const { return set(); }
+		inline T operator *() const { return value(); }
+	private:
+		T value_;
+		bool set_;
 	};
 
-	template <typename ValueType> 
-	struct Keyword : public KeywordBase
+	namespace sfinae
 	{
-		typedef ValueType Type;
-		Keyword(const Identifier& id, const ValueType& def) : 
-			KeywordBase(id), default_value(def) { }
-		Keyword(const Keyword& pk);
-		Keyword& operator=(const Keyword& pk); 
-		Parameter operator=(const ValueType& value) const
-		{ return Parameter::create(identifier,value); }
-		Parameter operator=(const DefaultValue&) const
-		{ return Parameter::create(identifier,default_value); }
-		ValueType default_value;
-	};
-	
-	struct Forwarder
-	{
-		Forwarder() { }
-		Forwarder(const Forwarder&);
-		Forwarder& operator=(const Forwarder&);
-		Parameters operator[](Parameters parameters) const
-		{ return parameters; }
-	};
+		typedef struct { int a; } yes;
+		typedef struct { char a; } no;
 
-	namespace
-	{
-		const DefaultValue take_default;
-		const Forwarder kwargs;
+		struct any_wrapper
+		{
+			template <class T> any_wrapper(const T&); 
+		};
+		no operator<<(const any_wrapper&, const any_wrapper&);
+		no operator>>(const any_wrapper&, const any_wrapper&);
+
+		template <typename S, typename T>
+		struct supports_saving
+		{
+			template <typename Q> static yes saving_check(const Q&);
+			static no saving_check(no);
+			static S& s;
+			static T& x;
+			static const bool value = sizeof(saving_check(s << x)) == sizeof(yes);
+		};
 	}
 }
+
 #endif

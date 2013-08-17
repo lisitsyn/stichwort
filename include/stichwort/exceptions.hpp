@@ -1,4 +1,5 @@
 /** Stichwort
+ * A simple library for named parameters in C++
  *
  * Copyright (c) 2013, Sergey Lisitsyn <lisitsyn.s.o@gmail.com>
  * All rights reserved.
@@ -32,46 +33,42 @@
 #include <stdexcept>
 #include <string>
 
+#include <stichwort/base.hpp>
+
 namespace stichwort
 {
 
-//! An exception type that is thrown in case of missed parameter,
-//! i.e. when some required parameter is not set.
-class missed_parameter_error : public std::logic_error
+class missed_parameter_error : public stichwort_keyword_error
 {
 	public:
-		/** @param what_msg message of the exception */
-		explicit missed_parameter_error(const std::string& what_msg) : 
-			std::logic_error(what_msg) {};
+		explicit missed_parameter_error(const KeywordBase& kw, const std::string& what_msg) : 
+			stichwort_keyword_error(kw, what_msg) {};
 };
 
-//! An exception type that is thrown in case if wrong parameter
-//! value is passed.
-class wrong_parameter_error : public std::logic_error
+class wrong_parameter_error : public stichwort_keyword_error
 {
 	public:
-		/** @param what_msg message of the exception */
-		explicit wrong_parameter_error(const std::string& what_msg) : 
-			std::logic_error(what_msg) {};
+		explicit wrong_parameter_error(const KeywordBase& kw, const std::string& what_msg) : 
+			stichwort_keyword_error(kw, what_msg) {};
 };
 
-//! An exception type that is thrown in case if wrong parameter
-//! value is passed.
-class wrong_parameter_type_error : public std::logic_error
+class wrong_parameter_type_error : public stichwort_keyword_error
 {
 	public:
-		/** @param what_msg message of the exception */
-		explicit wrong_parameter_type_error(const std::string& what_msg) : 
-			std::logic_error(what_msg) {};
+		explicit wrong_parameter_type_error(const KeywordBase& kw, const std::string& what_msg) : 
+			stichwort_keyword_error(kw, what_msg) {};
 };
 
-//! An exception type that is thrown when some parameter is passed more than once
-class multiple_parameter_error : public std::runtime_error
+class multiple_parameter_error : public std::logic_error
 {
 	public:
-		/** @param what_msg message of the exception */
-		explicit multiple_parameter_error(const std::string& what_msg) : 
-			std::runtime_error(what_msg) {};
+
+		typedef std::vector<KeywordBase> Keywords;
+
+		explicit multiple_parameter_error(const Keywords& kws, const std::string& what_msg) : 
+			std::logic_error(what_msg), keywords(kws) {};
+
+		Keywords keywords;
 };
 
 }

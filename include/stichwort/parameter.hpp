@@ -1,4 +1,5 @@
 /** Stichwort
+ * A simple library for named parameters in C++
  *
  * Copyright (c) 2013, Sergey Lisitsyn <lisitsyn.s.o@gmail.com>
  * All rights reserved.
@@ -29,6 +30,7 @@
 #ifndef STICHWORT_PARAMETER_H_
 #define STICHWORT_PARAMETER_H_
 
+#include <stichwort/exceptions.hpp>
 #include <stichwort/value_keeper.hpp>
 
 #include <sstream>
@@ -42,42 +44,46 @@
 namespace stichwort
 {
 
-class ParametersSet;
-class CheckedParameter;
+class Parameters;
 
 class Parameter
 {
-	friend class CheckedParameter;
-
-	typedef std::string ParameterName;
-
 private:
 
 	template <typename T>
-	Parameter(const ParameterName& pname, const T& value) : 
+	Parameter(const KeywordBase& kw, const T& value) : 
 		valid(true), invalidity_reasons(),
-		parameter_name(pname), keeper(stichwort_internal::ValueKeeper(value))
+		keyword_(kw), keeper(value)
 	{
 	}
 
 public:
 
 	template <typename T>
-	static Parameter create(const std::string& name, const T& value) 
+	static Parameter create(const KeywordBase& kw, const T& value) 
 	{
-		return Parameter(name, value);
+		return Parameter(kw, value);
 	}
 
 	Parameter() : 
-		valid(true), invalidity_reasons(),
-		parameter_name("unknown"), keeper(stichwort_internal::ValueKeeper())
+		valid(false), invalidity_reasons(),
+		keyword_(invalid_keyword), keeper()
 	{
 	}
 
 	Parameter(const Parameter& p) : 
 		valid(p.valid), invalidity_reasons(p.invalidity_reasons),
-		parameter_name(p.name()), keeper(p.keeper)
+		keyword_(p.keyword_), keeper(p.keeper)
 	{
+	}
+
+	Parameter& operator=(const Parameter& p)
+	{
+		valid = p.valid;
+		invalidity_reasons = p.invalidity_reasons;
+		keyword_ = p.keyword_;
+		keeper = p.keeper;
+		return *this;
 	}
 
 	~Parameter()
@@ -97,21 +103,10 @@ public:
 	template <typename T>
 	inline operator T()
 	{
-		if (!valid)
-		{
-			throw wrong_parameter_error(invalidity_reasons);
-		}
-		try 
-		{
-			return getValue<T>();
-		}
-		catch (const missed_parameter_error&)
-		{
-			throw missed_parameter_error(parameter_name + " is missed");
-		}
+		return getValue<T>();
 	}
 
-	operator ParametersSet();
+	operator Parameters();
 
 	template <typename T>
 	bool is(T v)
@@ -130,22 +125,20 @@ public:
 		return is<T>(v);
 	}
 
-	CheckedParameter checked();
-
 	bool isInitialized() const
 	{
 		return keeper.isInitialized();
 	}
 	
 	template <template<class> class F, class Q>
-	inline bool isCondition(F<Q> cond) const
+	inline bool satisfies(F<Q> cond) const
 	{
-		return keeper.isCondition(cond);
+		return keeper.satisfies(cond);
 	}
 
-	ParameterName name() const 
+	KeywordBase keyword() const 
 	{
-		return parameter_name;
+		return keyword_;
 	}
 
 	std::string repr() const
@@ -153,14 +146,23 @@ public:
 		return keeper.repr();
 	}
 
-	ParametersSet operator,(const Parameter& p);
+	Parameters operator,(const Parameter& p);
 
 private:
 
 	template <typename T>
 	inline T getValue() const
 	{
-		return keeper.getValue<T>();
+		if (!valid)
+			throw wrong_parameter_error(keyword_, invalidity_reasons);
+		if (!isTypeCorrect<T>())
+			throw wrong_parameter_type_error(keyword_, "wrong type");
+
+		optional<T> opt = keeper.getValue<T>();
+		if (!opt)
+			throw missed_parameter_error(keyword_, "missed");
+
+		return *opt;
 	}
 	
 	template <typename T>
@@ -181,76 +183,30 @@ private:
 
 	bool valid;
 	std::string invalidity_reasons;
-	ParameterName parameter_name;
+	KeywordBase keyword_;
 	stichwort_internal::ValueKeeper keeper; 
 
 };
 
-class CheckedParameter
-{
-
-public:
-
-	explicit CheckedParameter(Parameter& p) : parameter(p)
-	{
-	}
-
-	inline operator const Parameter&()
-	{
-		return parameter;
-	}
-
-	template <typename T>
-	bool is(T v)
-	{
-		return parameter.is<T>(v);
-	}
-
-	template <template<class> class F, class Q>
-	inline Parameter& satisfies(const F<Q>& cond) const
-	{
-		if (!parameter.isCondition(cond))
-			parameter.invalidate(cond.failureMessage(parameter));
-
-		return parameter;
-	}
-
-	template <typename T>
-	bool operator==(T v)
-	{
-		return is<T>(v);
-	}
-
-private:
-
-	Parameter& parameter;
-
-};
-
-CheckedParameter Parameter::checked() 
-{
-	return CheckedParameter(*this);
-}
-
-class ParametersSet
+class Parameters
 {
 public:
 
-	typedef std::map<std::string, Parameter> ParametersMap;
-	typedef std::list<std::string> DuplicatesList;
+	typedef std::map<KeywordBase, Parameter> ParametersMap;
+	typedef std::vector<KeywordBase> DuplicatesList;
 
-	ParametersSet(std::initializer_list<Parameter> pl) : pmap(), dups()
+	Parameters(std::initializer_list<Parameter> pl) : pmap(), dups()
 	{
-		for (auto p : pl) 
+		for (const auto& p : pl) 
 			add(p);
 	}
-	ParametersSet() : pmap(), dups()
+	Parameters() : pmap(), dups()
 	{
 	}
-	ParametersSet(const ParametersSet& other) : pmap(other.pmap), dups(other.dups)
+	Parameters(const Parameters& other) : pmap(other.pmap), dups(other.dups)
 	{
 	}
-	ParametersSet& operator=(const ParametersSet& other)
+	Parameters& operator=(const Parameters& other)
 	{
 		this->pmap = other.pmap;
 		this->dups = other.dups;
@@ -259,50 +215,36 @@ public:
 	void check() 
 	{
 		if (!dups.empty())
-		{
-			std::stringstream ss;
-			ss << "The following parameters are set more than once: ";
-			for (DuplicatesList::const_iterator iter=dups.begin(); iter!=dups.end(); ++iter)
-				ss << *iter << " ";
-
-			throw multiple_parameter_error(ss.str());
-		}
+			throw multiple_parameter_error(multiple_parameter_error::Keywords(dups), "multiple"); 
 	}
 	void add(const Parameter& p) 
 	{
-		if (pmap.count(p.name()))
-			dups.push_back(p.name());
+		if (pmap.count(p.keyword()))
+			dups.push_back(p.keyword());
 
-		pmap[p.name()] = p;
+		pmap[p.keyword()] = p;
 	}
 	bool contains(const std::string& name) const
 	{
 		return pmap.count(name) > 0;
 	}
-	void merge(const ParametersSet& pg) 
+	void merge(const Parameters& pg) 
 	{
-		typedef ParametersMap::const_iterator MapIter;
-		for (MapIter iter = pg.pmap.begin(); iter!=pg.pmap.end(); ++iter)
+		for (const auto& iter : pg.pmap)
 		{
-			if (!pmap.count(iter->first))
-			{
-				pmap[iter->first] = iter->second;
-			}
+			if (!pmap.count(iter.first))
+				pmap[iter.first] = iter.second;
 		}
 	}
-	Parameter operator[](const std::string& name) const
+	Parameter operator[](const KeywordBase& kw) const
 	{
-		ParametersMap::const_iterator it = pmap.find(name);
+		auto it = pmap.find(kw);
 		if (it != pmap.end())
-		{
 			return it->second;
-		}
 		else
-		{
-			throw missed_parameter_error(name + " is missed");
-		}
+			throw missed_parameter_error(kw, "missed");
 	}
-	ParametersSet& operator,(const Parameter& p)
+	Parameters& operator,(const Parameter& p)
 	{
 		add(p);
 		return *this;
@@ -314,17 +256,17 @@ private:
 	DuplicatesList dups;
 };
 
-ParametersSet Parameter::operator,(const Parameter& p)
+Parameters Parameter::operator,(const Parameter& p)
 {
-	ParametersSet pg;
+	Parameters pg;
 	pg.add(*this);
 	pg.add(p);
 	return pg;
 }
 
-Parameter::operator ParametersSet()
+Parameter::operator Parameters()
 {
-	ParametersSet pg;
+	Parameters pg;
 	pg.add(*this);
 	return pg;
 }

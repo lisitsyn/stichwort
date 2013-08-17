@@ -1,4 +1,5 @@
 /** Stichwort
+ * A simple library for named parameters in C++
  *
  * Copyright (c) 2013, Sergey Lisitsyn <lisitsyn.s.o@gmail.com>
  * All rights reserved.
@@ -32,41 +33,22 @@
 #include <string>
 #include <sstream>
 
+#include <stichwort/utils.hpp>
+
 namespace stichwort
 {
 namespace stichwort_internal
 {
-namespace streams_sfinae
-{
-	typedef char yes;
-	typedef long no;
-
-	struct any_wrapper
-	{
-		template <class T> any_wrapper(const T&); 
-	};
-	no operator<<(const any_wrapper&, const any_wrapper&);
-	template <class T> yes check(T const&);
-	no check(no);
-
-	template <typename S, typename T>
-	struct supports_saving
-	{
-		static S& s;
-		static T& x;
-		static const bool value = sizeof(check(s << x)) == sizeof(yes);
-	};
-}
 
 struct TypePolicyBase
 {
 	virtual ~TypePolicyBase() {}
 	virtual void copyFromValue(void const*, void**) const = 0;
-	virtual void* getValue(void**) const = 0;
+	virtual void* getValue(void* const*) const = 0;
 	virtual void free(void**) const = 0;
 	virtual void clone(void* const*, void**) const = 0;
 	virtual void move(void* const*, void**) const = 0;
-	virtual std::string repr(void **) const = 0;
+	virtual std::string repr(void* const*) const = 0;
 };
 
 template <typename T, bool>
@@ -82,7 +64,7 @@ struct PointerTypePolicyImpl : public TypePolicyBase
 	{
 		*dest = new T(*reinterpret_cast<T const*>(src));
 	}
-	inline virtual void* getValue(void** src) const
+	inline virtual void* getValue(void* const* src) const
 	{
 		return *src;
 	}
@@ -103,24 +85,16 @@ struct PointerTypePolicyImpl : public TypePolicyBase
 		(*reinterpret_cast<T**>(dest))->~T();
 		**reinterpret_cast<T**>(dest) = **reinterpret_cast<T* const*>(src); 
 	}
-	inline virtual std::string repr(void** src) const
+	inline virtual std::string repr(void* const* src) const
 	{
-		return repr_impl_if_streaming_supported<T,streams_sfinae::supports_saving<std::stringstream,T>::value>()(this,src);
+		return repr_impl_if_streaming_supported<T,sfinae::supports_saving<std::stringstream,T>::value>()(this,src);
 	}
 };
-
-struct EmptyType;
-
-template <>
-std::string PointerTypePolicyImpl<EmptyType>::repr(void**) const
-{
-	return "uninitialized";
-}
 
 template <typename T>
 struct repr_impl_if_streaming_supported<T,true>
 {
-	std::string operator()(const TypePolicyBase* const impl, void** src) const
+	std::string operator()(const TypePolicyBase* const impl, void* const* src) const
 	{
 		void* vv = impl->getValue(src);
 		T* vp = reinterpret_cast<T*>(vv);
@@ -134,17 +108,20 @@ struct repr_impl_if_streaming_supported<T,true>
 template <typename T>
 struct repr_impl_if_streaming_supported<T,false>
 {
-	std::string operator()(const TypePolicyBase* const, void**) const
+	std::string operator()(const TypePolicyBase* const, void* const*) const
 	{
 		return "(can't obtain value)";
 	}
 };
 
-template <typename T>
-TypePolicyBase* getPolicy()
+namespace 
 {
-	static PointerTypePolicyImpl<T> policy;
-	return &policy;
+	template <typename T>
+	TypePolicyBase* getPolicy()
+	{
+		static PointerTypePolicyImpl<T> policy;
+		return &policy;
+	}
 }
 
 }

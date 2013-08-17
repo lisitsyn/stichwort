@@ -27,46 +27,42 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef STICHWORT_KEYWORDS_H_
-#define STICHWORT_KEYWORDS_H_
-
-#include <stichwort/parameter.hpp>
+#ifndef STICHWORT_BASE_H_
+#define STICHWORT_BASE_H_
 
 namespace stichwort
 {
-	struct DefaultValue
+	struct KeywordBase
 	{
-		DefaultValue() { }
+		std::string identifier;
+		typedef decltype(identifier) Identifier;
+
+		KeywordBase(const Identifier& id) : identifier(id) { }
+
+		bool operator==(const KeywordBase& other) const
+		{ return (identifier == other.identifier); }
+		bool operator!=(const KeywordBase& other) const
+		{ return (identifier != other.identifier); }
+		bool operator<(const KeywordBase& other) const
+		{ return identifier.compare(other.identifier) < 0; }
+		operator Identifier () const
+		{ return identifier; }
 	};
 
-	template <typename ValueType> 
-	struct Keyword : public KeywordBase
+	namespace 
 	{
-		typedef ValueType Type;
-		Keyword(const Identifier& id, const ValueType& def) : 
-			KeywordBase(id), default_value(def) { }
-		Keyword(const Keyword& pk);
-		Keyword& operator=(const Keyword& pk); 
-		Parameter operator=(const ValueType& value) const
-		{ return Parameter::create(identifier,value); }
-		Parameter operator=(const DefaultValue&) const
-		{ return Parameter::create(identifier,default_value); }
-		ValueType default_value;
-	};
-	
-	struct Forwarder
-	{
-		Forwarder() { }
-		Forwarder(const Forwarder&);
-		Forwarder& operator=(const Forwarder&);
-		Parameters operator[](Parameters parameters) const
-		{ return parameters; }
-	};
-
-	namespace
-	{
-		const DefaultValue take_default;
-		const Forwarder kwargs;
+		const KeywordBase invalid_keyword("Invalid keyword");
 	}
+
+	class stichwort_keyword_error : public std::logic_error
+	{
+	public:
+		explicit stichwort_keyword_error(const KeywordBase& kw, const std::string& what_msg) : 
+			std::logic_error(what_msg), keyword(kw) {}
+
+		const KeywordBase& keyword;
+	};
+
 }
+
 #endif

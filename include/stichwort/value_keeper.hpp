@@ -1,4 +1,5 @@
 /** Stichwort
+ * A simple library for named parameters in C++
  *
  * Copyright (c) 2013, Sergey Lisitsyn <lisitsyn.s.o@gmail.com>
  * All rights reserved.
@@ -43,83 +44,77 @@ struct EmptyType
 
 class ValueKeeper
 {
-
 public:
 	template <typename T>
 	explicit ValueKeeper(const T& value) : 
-		policy(getPolicy<T>()), value_ptr(NULL) 
+		policy_(getPolicy<T>()), value_ptr_(NULL) 
 	{
-		policy->copyFromValue(&value, &value_ptr);
+		policy_->copyFromValue(&value, &value_ptr_);
 	}
 
 	ValueKeeper() :
-		policy(getPolicy<EmptyType>()), value_ptr(NULL) 
+		policy_(getPolicy<EmptyType>()), value_ptr_(NULL) 
 	{
 	}
 
 	~ValueKeeper()
 	{
-		policy->free(&value_ptr);
+		policy_->free(&value_ptr_);
 	}
 
-	ValueKeeper(const ValueKeeper& v) : policy(v.policy), value_ptr(NULL)
+	ValueKeeper(const ValueKeeper& v) : policy_(v.policy_), value_ptr_(NULL)
 	{
-		policy->clone(&(v.value_ptr), &value_ptr);
+		policy_->clone(&(v.value_ptr_), &value_ptr_);
 	}
 
 	ValueKeeper& operator=(const ValueKeeper& v)
 	{
-		policy->free(&value_ptr);
-		policy = v.policy;
-		policy->clone(&(v.value_ptr), &value_ptr);
+		policy_->free(&value_ptr_);
+		policy_ = v.policy_;
+		policy_->clone(&(v.value_ptr_), &value_ptr_);
 		return *this;
 	}
 
 	template <typename T>
-	inline T getValue() const
+	optional<T> getValue() const
 	{
 		T* v;
 		if (!isInitialized())
-			throw missed_parameter_error("Parameter is missed");
+			return optional<T>();
 
 		if (isTypeCorrect<T>())
 		{
-			void* vv = policy->getValue(const_cast<void**>(&value_ptr));
+			void* vv = policy_->getValue(&value_ptr_);
 			v = reinterpret_cast<T*>(vv);
 		}
 		else
-			throw wrong_parameter_type_error("Wrong value type");
-		return *v;
+			return optional<T>();
+
+		return optional<T>(*v);
 	}
 
 	template <typename T>
 	inline bool isTypeCorrect() const
-	{
-		return getPolicy<T>() == policy;
-	}
+	{ return getPolicy<T>() == policy_; }
 
 	inline bool isInitialized() const
-	{
-		return getPolicy<EmptyType>() != policy;
-	}
+	{ return getPolicy<EmptyType>() != policy_; }
 
 	template <template<class> class F, class Q>
-	inline bool isCondition(F<Q> cond) const
+	inline bool satisfies(F<Q> cond) const
 	{
-		Q value = getValue<Q>();
-		return cond(value);
+		optional<Q> opt = getValue<Q>();
+		if (opt)
+			return cond(*opt);
+		return false;
 	}
 
 	inline std::string repr() const 
-	{
-		return policy->repr(const_cast<void**>(&value_ptr));
-	}
+	{ return policy_->repr(const_cast<void**>(&value_ptr_)); }
 
 private:
-
-	TypePolicyBase* policy;
-	void* value_ptr;
-
+	TypePolicyBase* policy_;
+	void* value_ptr_;
 };
 
 }

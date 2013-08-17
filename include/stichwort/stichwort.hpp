@@ -27,46 +27,17 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef STICHWORT_KEYWORDS_H_
-#define STICHWORT_KEYWORDS_H_
+#ifndef STICHWORT_STICHWORT_H_
+#define STICHWORT_STICHWORT_H_
 
-#include <stichwort/parameter.hpp>
+#include <stichwort/keywords.hpp>
+#include <stichwort/exceptions.hpp>
 
 namespace stichwort
 {
-	struct DefaultValue
-	{
-		DefaultValue() { }
-	};
-
-	template <typename ValueType> 
-	struct Keyword : public KeywordBase
-	{
-		typedef ValueType Type;
-		Keyword(const Identifier& id, const ValueType& def) : 
-			KeywordBase(id), default_value(def) { }
-		Keyword(const Keyword& pk);
-		Keyword& operator=(const Keyword& pk); 
-		Parameter operator=(const ValueType& value) const
-		{ return Parameter::create(identifier,value); }
-		Parameter operator=(const DefaultValue&) const
-		{ return Parameter::create(identifier,default_value); }
-		ValueType default_value;
-	};
-	
-	struct Forwarder
-	{
-		Forwarder() { }
-		Forwarder(const Forwarder&);
-		Forwarder& operator=(const Forwarder&);
-		Parameters operator[](Parameters parameters) const
-		{ return parameters; }
-	};
-
-	namespace
-	{
-		const DefaultValue take_default;
-		const Forwarder kwargs;
-	}
+	static const int WORLD_VERSION = 0;
+	static const int MAJOR_VERSION = 0;
+	static const int MINOR_VERSION = 1;
 }
+
 #endif

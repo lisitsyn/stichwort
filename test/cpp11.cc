@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include <stichwort/keywords.hpp>
+#include <stichwort/stichwort.hpp>
 #include <string>
 #include <list>
 
@@ -7,19 +7,19 @@ namespace test
 {
 	namespace
 	{
-		const stichwort::ParameterKeyword<int> a("A", 1);
-		const stichwort::ParameterKeyword<int> b("B", 2);
-		const stichwort::ParameterKeyword<int> c("C", 3);
+		const stichwort::Keyword<int> a("A", 1);
+		const stichwort::Keyword<int> b("B", 2);
+		const stichwort::Keyword<int> c("C", 3);
 	}
 
-	int sum(int s, stichwort::ParametersSet ps)
+	int sum(int s, stichwort::Parameters ps)
 	{
 		int av = ps[a];
 		int bv = ps[b];
 		int cv = ps[c];
 		return s + av + bv + cv;
 	}
-	int identity(stichwort::ParametersSet ps)
+	int identity(stichwort::Parameters ps)
 	{
 		return ps[a];
 	}
@@ -40,7 +40,7 @@ TEST(Cpp11,InitializerListMultiple)
 TEST(Cpp11,InitializerListSingle)
 {
 	int a_value = 49;
-	int id;
+	decltype(test::a)::Type id;
 	ASSERT_NO_THROW(id = test::identity({test::a=a_value}));
 	ASSERT_EQ(id, a_value);
 }
