@@ -67,6 +67,7 @@ class multiple_parameter_error : public std::logic_error
 
 		explicit multiple_parameter_error(const Keywords& kws, const std::string& what_msg) : 
 			std::logic_error(what_msg), keywords(kws) {};
+		virtual ~multiple_parameter_error() throw() {}
 
 		Keywords keywords;
 };

@@ -39,7 +39,9 @@
 #include <iostream>
 #include <list>
 
+#ifdef USE_CXX11
 #include <initializer_list>
+#endif
 
 namespace stichwort
 {
@@ -195,11 +197,13 @@ public:
 	typedef std::map<KeywordBase, Parameter> ParametersMap;
 	typedef std::vector<KeywordBase> DuplicatesList;
 
+#ifdef USE_CXX11
 	Parameters(std::initializer_list<Parameter> pl) : pmap(), dups()
 	{
 		for (const auto& p : pl) 
 			add(p);
 	}
+#endif
 	Parameters() : pmap(), dups()
 	{
 	}
@@ -230,15 +234,23 @@ public:
 	}
 	void merge(const Parameters& pg) 
 	{
+#ifdef USE_CXX11
 		for (const auto& iter : pg.pmap)
 		{
 			if (!pmap.count(iter.first))
 				pmap[iter.first] = iter.second;
 		}
+#else
+		for (ParametersMap::const_iterator iter=pg.pmap.begin(); iter!=pg.pmap.end(); ++iter)
+		{
+			if (!pmap.count(iter->first))
+				pmap[iter->first] = iter->second;
+		}
+#endif
 	}
 	Parameter operator[](const KeywordBase& kw) const
 	{
-		auto it = pmap.find(kw);
+		ParametersMap::const_iterator it = pmap.find(kw);
 		if (it != pmap.end())
 			return it->second;
 		else

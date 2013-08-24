@@ -30,12 +30,14 @@
 #ifndef STICHWORT_BASE_H_
 #define STICHWORT_BASE_H_
 
+#include <stdexcept>
+
 namespace stichwort
 {
 	struct KeywordBase
 	{
-		std::string identifier;
-		typedef decltype(identifier) Identifier;
+		typedef std::string Identifier;
+		Identifier identifier;
 
 		KeywordBase(const Identifier& id) : identifier(id) { }
 

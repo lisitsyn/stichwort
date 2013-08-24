@@ -27,9 +27,17 @@ namespace test
 	};
 
 	stichwort::Keyword<double> x_in_range_kw("x in range", 0.0);
+#ifdef USE_CXX11
 	typedef decltype(x_in_range_kw)::Type XInRangeType;
+#else
+	typedef double XInRangeType;
+#endif
 	stichwort::Keyword<double> x_not_in_range_kw("x not in range", 0.0);
+#ifdef USE_CXX11
 	typedef decltype(x_not_in_range_kw)::Type XNotInRangeType;
+#else
+	typedef double XNotInRangeType;
+#endif
 }
 
 TEST(Checkers,InRangeCondition)

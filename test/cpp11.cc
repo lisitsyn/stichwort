@@ -3,6 +3,8 @@
 #include <string>
 #include <list>
 
+#ifdef USE_CXX11
+
 namespace test
 {
 	namespace
@@ -44,3 +46,4 @@ TEST(Cpp11,InitializerListSingle)
 	ASSERT_NO_THROW(id = test::identity({test::a=a_value}));
 	ASSERT_EQ(id, a_value);
 }
+#endif
