@@ -32,6 +32,7 @@
 
 #include <stdexcept>
 #include <string>
+#include <vector>
 
 #include <stichwort/base.hpp>
 
