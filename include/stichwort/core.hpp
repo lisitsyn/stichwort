@@ -31,7 +31,7 @@
 #define STICHWORT_PARAMETER_H_
 
 #include <stichwort/exceptions.hpp>
-#include <stichwort/value_keeper.hpp>
+#include <stichwort/utils.hpp>
 
 #include <sstream>
 #include <vector>
@@ -45,148 +45,96 @@
 
 namespace stichwort
 {
-
 class Parameters;
 
-class Parameter
+struct DefaultValue
+{
+	DefaultValue() { }
+};
+
+template <typename T> class Parameter;
+
+template <typename ValueType> 
+class Keyword : public KeywordBase
+{
+public:
+	typedef ValueType Type;
+	Keyword(const Identifier& id, const ValueType& default_value) : 
+		KeywordBase(id), default_value__(default_value) { }
+	Keyword(const Keyword& pk);
+	Keyword& operator=(const Keyword& pk); 
+
+	Parameter<ValueType> operator=(const ValueType& value) const;
+	Parameter<ValueType> operator=(const DefaultValue&) const;
+
+	inline ValueType default_value() const
+	{
+		return default_value__;
+	}
+private:
+	const ValueType default_value__;
+};
+
+template <typename T>
+class Parameter : public ParameterBase
 {
 private:
 
-	template <typename T>
-	Parameter(const KeywordBase& kw, const T& value) : 
-		valid(true), invalidity_reasons(),
-		keyword_(kw), keeper(value)
+	Parameter(KeywordBase& kw, const T& v) : 
+		ParameterBase(kw), value__(v)
 	{
 	}
 
 public:
 
-	template <typename T>
-	static Parameter create(const KeywordBase& kw, const T& value) 
+	static Parameter create(KeywordBase& kw, const T& value) 
 	{
 		return Parameter(kw, value);
 	}
 
 	Parameter() : 
-		valid(false), invalidity_reasons(),
-		keyword_(invalid_keyword), keeper()
+		ParameterBase(invalid_keyword), value__()
 	{
 	}
 
 	Parameter(const Parameter& p) : 
-		valid(p.valid), invalidity_reasons(p.invalidity_reasons),
-		keyword_(p.keyword_), keeper(p.keeper)
+		ParameterBase(p.keyword()), value__(p.value__)
 	{
 	}
 
 	Parameter& operator=(const Parameter& p)
 	{
-		valid = p.valid;
-		invalidity_reasons = p.invalidity_reasons;
-		keyword_ = p.keyword_;
-		keeper = p.keeper;
+		this->keyword__ = p.keyword__;
+		this->value__ = p.value__;
 		return *this;
+	}
+
+	ParameterBase* clone() const
+	{
+		return new Parameter(*this);
 	}
 
 	~Parameter()
 	{
 	}
 
-	template <typename T>
-	inline Parameter withDefault(T value)
-	{
-		if (!isInitialized())
-		{
-			keeper = stichwort_internal::ValueKeeper(value);
-		}
-		return *this;
-	}
-
-	template <typename T>
-	inline operator T()
-	{
-		return getValue<T>();
-	}
-
 	operator Parameters();
 
-	template <typename T>
-	bool is(T v)
-	{
-		if (!isTypeCorrect<T>())
-			return false;
-		T kv = keeper.getValue<T>();
-		if (v == kv)
-			return true;
-		return false;
-	}
-
-	template <typename T>
-	bool operator==(T v) const
-	{
-		return is<T>(v);
-	}
-
-	bool isInitialized() const
-	{
-		return keeper.isInitialized();
-	}
-	
 	template <template<class> class F, class Q>
 	inline bool satisfies(F<Q> cond) const
 	{
-		return keeper.satisfies(cond);
+		return cond(value__);
 	}
 
-	KeywordBase keyword() const 
-	{
-		return keyword_;
-	}
-
-	std::string repr() const
-	{
-		return keeper.repr();
-	}
-
-	Parameters operator,(const Parameter& p);
-
-private:
-
-	template <typename T>
-	inline T getValue() const
-	{
-		if (!valid)
-			throw wrong_parameter_error(keyword_, invalidity_reasons);
-		if (!isTypeCorrect<T>())
-			throw wrong_parameter_type_error(keyword_, "wrong type");
-
-		optional<T> opt = keeper.getValue<T>();
-		if (!opt)
-			throw missed_parameter_error(keyword_, "missed");
-
-		return *opt;
-	}
+	template <typename R>
+	Parameters operator,(const Parameter<R>& p);
 	
-	template <typename T>
-	inline bool isTypeCorrect() const
+	inline T get() const
 	{
-		return keeper.isTypeCorrect<T>();
+		return value__;
 	}
 
-	inline void invalidate(const std::string& reason)
-	{
-		if (valid) 
-			valid = false;
-
-		invalidity_reasons += reason;
-	}
-
-private:
-
-	bool valid;
-	std::string invalidity_reasons;
-	KeywordBase keyword_;
-	stichwort_internal::ValueKeeper keeper; 
+	T value__;
 
 };
 
@@ -194,7 +142,7 @@ class Parameters
 {
 public:
 
-	typedef std::map<KeywordBase, Parameter> ParametersMap;
+	typedef std::map<KeywordBase, unique_ptr<ParameterBase> > ParametersMap;
 	typedef std::vector<KeywordBase> DuplicatesList;
 
 #ifdef USE_CXX11
@@ -207,8 +155,12 @@ public:
 	Parameters() : pmap(), dups()
 	{
 	}
-	Parameters(const Parameters& other) : pmap(other.pmap), dups(other.dups)
+	Parameters(const Parameters& other) : pmap(), dups(other.dups)
 	{
+		for (ParametersMap::const_iterator iter=other.pmap.begin(); iter!=other.pmap.end(); ++iter)
+		{
+			pmap[iter->first] = unique_ptr<ParameterBase>(iter->second->clone());
+		}
 	}
 	Parameters& operator=(const Parameters& other)
 	{
@@ -221,12 +173,13 @@ public:
 		if (!dups.empty())
 			throw multiple_parameter_error(multiple_parameter_error::Keywords(dups), "multiple"); 
 	}
-	void add(const Parameter& p) 
+	template <typename T>
+	void add(const Parameter<T>& p) 
 	{
 		if (pmap.count(p.keyword()))
 			dups.push_back(p.keyword());
 
-		pmap[p.keyword()] = p;
+		pmap[p.keyword()] = unique_ptr<ParameterBase>(p.clone());
 	}
 	bool contains(const std::string& name) const
 	{
@@ -248,15 +201,17 @@ public:
 		}
 #endif
 	}
-	Parameter operator[](const KeywordBase& kw) const
+	template <typename R>
+	R operator[](const Keyword<R>& kw) const
 	{
 		ParametersMap::const_iterator it = pmap.find(kw);
 		if (it != pmap.end())
-			return it->second;
+			return (dynamic_cast< const Parameter<R>* >(*(it->second)))->get();
 		else
-			throw missed_parameter_error(kw, "missed");
+			throw missed_parameter_error(kw, "Missed");
 	}
-	Parameters& operator,(const Parameter& p)
+	template <typename R>
+	Parameters& operator,(const Parameter<R>& p)
 	{
 		add(p);
 		return *this;
@@ -268,7 +223,9 @@ private:
 	DuplicatesList dups;
 };
 
-Parameters Parameter::operator,(const Parameter& p)
+template<typename T>
+template<typename R>
+Parameters Parameter<T>::operator,(const Parameter<R>& p)
 {
 	Parameters pg;
 	pg.add(*this);
@@ -276,13 +233,39 @@ Parameters Parameter::operator,(const Parameter& p)
 	return pg;
 }
 
-Parameter::operator Parameters()
+template<typename T>
+Parameter<T>::operator Parameters()
 {
 	Parameters pg;
 	pg.add(*this);
 	return pg;
 }
 
+template<typename ValueType>
+Parameter<ValueType> Keyword<ValueType>::operator=(const ValueType& value) const
+{
+	return Parameter<ValueType>::create(*const_cast<Keyword<ValueType>* >(this),value);
+}
+template<typename ValueType>
+Parameter<ValueType> Keyword<ValueType>::operator=(const DefaultValue&) const
+{
+	return Parameter<ValueType>::create(*const_cast<Keyword<ValueType>* >(this),default_value());
+}
+
+struct Forwarder
+{
+	Forwarder() { }
+	Forwarder(const Forwarder&);
+	Forwarder& operator=(const Forwarder&);
+	Parameters operator[](Parameters parameters) const
+	{ return parameters; }
+};
+
+namespace
+{
+	const DefaultValue take_default;
+	const Forwarder kwargs;
+}
 
 }
 

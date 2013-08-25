@@ -53,6 +53,45 @@ namespace stichwort
 		T value_;
 		bool set_;
 	};
+	
+	template <typename T>
+	class unique_ptr
+	{
+	public:
+		explicit unique_ptr(const T* ptr) : ptr__(ptr) { }
+		unique_ptr() : ptr__(NULL)
+		{
+		}
+		unique_ptr(const unique_ptr& other) : ptr__(other.ptr__)
+		{
+			other.reset();
+		}
+		unique_ptr& operator=(const unique_ptr& other) 
+		{
+			this->ptr__ = other.ptr__;
+			other.reset();
+			return *this;
+		}
+		~unique_ptr()
+		{
+			if (ptr__)
+				delete ptr__;
+		}
+
+		void reset() const
+		{
+			ptr__ = NULL;
+		}
+		const T* operator*() const
+		{
+			return ptr__;
+		}
+		const T* operator->() const
+		{
+			return ptr__;
+		}
+		mutable const T* ptr__;
+	};
 
 	namespace sfinae
 	{

@@ -30,8 +30,7 @@
 #ifndef STICHWORT_STICHWORT_H_
 #define STICHWORT_STICHWORT_H_
 
-#include <stichwort/keywords.hpp>
-#include <stichwort/exceptions.hpp>
+#include <stichwort/core.hpp>
 
 namespace stichwort
 {

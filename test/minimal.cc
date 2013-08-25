@@ -79,8 +79,8 @@ TEST(Minimal,CallCombinations)
 	     iter!=combs.end();
 	     ++iter)
 	{
-		ASSERT_EQ(select_a(*iter), a.default_value);
-		ASSERT_EQ(select_b(*iter), b.default_value);
-		ASSERT_EQ(select_c(*iter), c.default_value);
+		ASSERT_EQ(select_a(*iter), a.default_value());
+		ASSERT_EQ(select_b(*iter), b.default_value());
+		ASSERT_EQ(select_c(*iter), c.default_value());
 	}
 }

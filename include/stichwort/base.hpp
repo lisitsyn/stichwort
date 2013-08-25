@@ -37,18 +37,44 @@ namespace stichwort
 	struct KeywordBase
 	{
 		typedef std::string Identifier;
-		Identifier identifier;
+		Identifier identifier__;
 
-		KeywordBase(const Identifier& id) : identifier(id) { }
+		KeywordBase(const Identifier& id) : identifier__(id) { }
+		virtual ~KeywordBase() { }
 
 		bool operator==(const KeywordBase& other) const
-		{ return (identifier == other.identifier); }
+		{ return (identifier__ == other.identifier__); }
 		bool operator!=(const KeywordBase& other) const
-		{ return (identifier != other.identifier); }
+		{ return (identifier__ != other.identifier__); }
 		bool operator<(const KeywordBase& other) const
-		{ return identifier.compare(other.identifier) < 0; }
+		{ return identifier__.compare(other.identifier__) < 0; }
 		operator Identifier () const
-		{ return identifier; }
+		{ return identifier__; }
+	};
+
+	struct ParameterBase
+	{
+		ParameterBase(KeywordBase& kw) : keyword__(kw)
+		{
+		}
+		ParameterBase(const ParameterBase& other) : keyword__(other.keyword__)
+		{
+		}
+		ParameterBase& operator=(const ParameterBase& other)
+		{
+			keyword__ = other.keyword__;
+			return *this;
+		}
+		virtual ~ParameterBase()
+		{
+		}
+
+		virtual ParameterBase* clone() const = 0;
+		KeywordBase& keyword() const
+		{
+			return keyword__;
+		}
+		KeywordBase& keyword__;
 	};
 
 	namespace 

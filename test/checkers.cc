@@ -18,7 +18,7 @@ namespace test
 			std::cout << "Value " << v << std::endl;
 			return (v>=lower) && (v<upper);
 		}
-		std::string failureMessage(const stichwort::Parameter&) const
+		std::string failureMessage(const stichwort::Parameter<T>&) const
 		{
 			return "failed";
 		}
@@ -44,8 +44,10 @@ TEST(Checkers,InRangeCondition)
 {
 	test::XInRangeType x_in_range_value = 1.0;
 	test::XNotInRangeType x_not_in_range_value = 1.5;
-	stichwort::Parameter x_in_range = stichwort::Parameter::create(test::x_in_range_kw, x_in_range_value);
-	stichwort::Parameter x_not_in_range = stichwort::Parameter::create(test::x_not_in_range_kw, x_not_in_range_value);
+	stichwort::Parameter<test::XInRangeType> x_in_range = 
+		stichwort::Parameter<test::XInRangeType>::create(test::x_in_range_kw, x_in_range_value);
+	stichwort::Parameter<test::XNotInRangeType> x_not_in_range = 
+		stichwort::Parameter<test::XNotInRangeType>::create(test::x_not_in_range_kw, x_not_in_range_value);
 	ASSERT_EQ(x_in_range.satisfies(test::InRange<test::XInRangeType>(0.5,1.25)), true);
 	ASSERT_EQ(x_not_in_range.satisfies(test::InRange<test::XNotInRangeType>(0.5,1.25)), false);
 }
