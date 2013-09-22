@@ -39,13 +39,6 @@
 namespace stichwort
 {
 
-class missed_parameter_error : public stichwort_keyword_error
-{
-	public:
-		explicit missed_parameter_error(const KeywordBase& kw, const std::string& what_msg) : 
-			stichwort_keyword_error(kw, what_msg) {};
-};
-
 class wrong_parameter_error : public stichwort_keyword_error
 {
 	public:

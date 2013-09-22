@@ -48,6 +48,8 @@ namespace stichwort
 		{ return (identifier__ != other.identifier__); }
 		bool operator<(const KeywordBase& other) const
 		{ return identifier__.compare(other.identifier__) < 0; }
+		Identifier identifier() const
+		{ return identifier__; }
 		operator Identifier () const
 		{ return identifier__; }
 	};
@@ -79,7 +81,7 @@ namespace stichwort
 
 	namespace 
 	{
-		const KeywordBase invalid_keyword("Invalid keyword");
+		KeywordBase invalid_keyword("Invalid keyword");
 	}
 
 	class stichwort_keyword_error : public std::logic_error

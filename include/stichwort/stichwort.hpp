@@ -36,7 +36,7 @@ namespace stichwort
 {
 	static const int WORLD_VERSION = 0;
 	static const int MAJOR_VERSION = 0;
-	static const int MINOR_VERSION = 1;
+	static const int MINOR_VERSION = 2;
 }
 
 #endif

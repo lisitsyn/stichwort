@@ -208,7 +208,7 @@ public:
 		if (it != pmap.end())
 			return (dynamic_cast< const Parameter<R>* >(*(it->second)))->get();
 		else
-			throw missed_parameter_error(kw, "Missed");
+			return kw.default_value();
 	}
 	template <typename R>
 	Parameters& operator,(const Parameter<R>& p)
