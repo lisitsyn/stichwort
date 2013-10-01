@@ -33,28 +33,6 @@
 namespace stichwort
 {
 	template <typename T>
-	class optional
-	{
-	public:
-		optional() : value_(), set_(false) {}
-		optional(T v) : value_(v), set_(true) {}
-		
-		optional(const optional& other) : value_(other.value_) {}
-		optional& operator=(const optional& other)
-		{
-			value_ = other.value_;
-			return *this;
-		}
-		inline T value() const { return value_; }
-		inline bool set() const { return set_; }
-		inline operator bool() const { return set(); }
-		inline T operator *() const { return value(); }
-	private:
-		T value_;
-		bool set_;
-	};
-	
-	template <typename T>
 	class unique_ptr
 	{
 	public:

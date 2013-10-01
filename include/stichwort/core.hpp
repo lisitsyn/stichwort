@@ -30,7 +30,7 @@
 #ifndef STICHWORT_PARAMETER_H_
 #define STICHWORT_PARAMETER_H_
 
-#include <stichwort/exceptions.hpp>
+#include <stichwort/base.hpp>
 #include <stichwort/utils.hpp>
 
 #include <sstream>
@@ -167,11 +167,6 @@ public:
 		this->pmap = other.pmap;
 		this->dups = other.dups;
 		return *this;
-	}
-	void check() 
-	{
-		if (!dups.empty())
-			throw multiple_parameter_error(multiple_parameter_error::Keywords(dups), "multiple"); 
 	}
 	template <typename T>
 	void add(const Parameter<T>& p) 
