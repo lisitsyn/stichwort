@@ -1,3 +1,5 @@
+*This library is deprecated*
+
 Stichwort is a simple tool for C++ keyword arguments. The library provides rather
 clean and simple API for creating keywords and handling them as function parameters.
 For example with predefined keywords `port` (as a static instance of the 
